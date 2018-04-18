@@ -706,6 +706,78 @@ var routeDescriptors = []RouteDescriptor{
 	},
 
 	{
+		Name:        "announce",
+		Path:        "/v2/bittorrent/announce/{digest: " + digest.DigestRegexp.String() + "}",
+		Entity:      "bittorrent Blob",
+		Description: "Get a bit torrent peer list",
+		Methods: []MethodDescriptor{
+			{
+				Method:      "GET",
+				Description: "Recieve a list of peers to download a blob from",
+				Requests: []RequestDescriptor{
+					{
+						Name: "Fetch peers",
+						Headers: []ParameterDescriptor{
+							hostHeader,
+							authHeader,
+						},
+						PathParameters: []ParameterDescriptor{
+							digestPathParameter,
+						},
+						Successes: []ResponseDescriptor{
+							{
+								Description: "The blob identified by `digest` is available from peers. The list of peers will be present in the body of the request.",
+								StatusCode:  http.StatusOK,
+								Headers: []ParameterDescriptor{
+									{
+										Name:        "interval",
+										Type:        "integer",
+										Description: "Number of seconds the client should wait between regular re-requests",
+										Format:      "<interval>",
+									},
+								},
+								Body: BodyDescriptor{
+									ContentType: "application/octet-stream",
+									Format:      "{blob}",
+								},
+							},
+						},
+						Failures: []ResponseDescriptor{
+							{
+								Description: "There was a problem with the request that needs to be addressed by the client, such as an invalid `name` or `tag`.",
+								StatusCode:  http.StatusBadRequest,
+								ErrorCodes: []errcode.ErrorCode{
+									ErrorCodeNameInvalid,
+									ErrorCodeDigestInvalid,
+								},
+								Body: BodyDescriptor{
+									ContentType: "application/json; charset=utf-8",
+									Format:      errorsBody,
+								},
+							},
+							{
+								Description: "The blob, identified by `name` and `digest`, is unknown to the registry.",
+								StatusCode:  http.StatusNotFound,
+								Body: BodyDescriptor{
+									ContentType: "application/json; charset=utf-8",
+									Format:      errorsBody,
+								},
+								ErrorCodes: []errcode.ErrorCode{
+									ErrorCodeNameUnknown,
+									ErrorCodeBlobUnknown,
+								},
+							},
+							unauthorizedResponseDescriptor,
+							repositoryNotFoundResponseDescriptor,
+							deniedResponseDescriptor,
+							tooManyRequestsDescriptor,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
 		Name:        RouteNameBlob,
 		Path:        "/v2/{name:" + reference.NameRegexp.String() + "}/blobs/{digest:" + digest.DigestRegexp.String() + "}",
 		Entity:      "Blob",
